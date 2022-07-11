@@ -9,7 +9,7 @@
   "license": "MIT",
   "require": {
     "php": ">=7.1",
-    "icy8/event-bus": "dev-master"
+    "icy8/event-bus": "^1.0.0"
   },
   "minimum-stability": "dev",
   "prefer-stable": true,
