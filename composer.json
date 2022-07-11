@@ -1,0 +1,21 @@
+{
+  "name": "icy8/process",
+  "authors": [
+    {
+      "name": "icy8",
+      "email": "672636920@qq.com"
+    }
+  ],
+  "license": "MIT",
+  "require": {
+    "php": ">=7.1",
+    "icy8/event-bus": "dev-master"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "autoload": {
+    "psr-4": {
+      "icy8\\process\\": "src/"
+    }
+  }
+}
