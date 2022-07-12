@@ -50,6 +50,7 @@ class Worker
             // 打开一个进程
             $this->fork();
         }
+        register_shutdown_function([$this, 'stop']);
         // 主进程保持运行
         while (!empty($this->workerPids)) ;
     }
