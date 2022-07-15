@@ -20,7 +20,7 @@ class Worker
     public function __construct()
     {
         // 检查环境
-        $this->checkEnvironment();
+        $this->isSupported();
         $this->event     = new Emitter(); // 事件发布
         self::$masterPid = getmypid();
         $this->pid       = getmypid();
@@ -179,7 +179,7 @@ class Worker
      * 检查环境
      * @throws \Exception
      */
-    public function checkEnvironment()
+    public function isSupported()
     {
         if (PHP_SAPI != 'cli') {
             throw new \Exception('allow in cli mode');
