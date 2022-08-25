@@ -14,7 +14,7 @@ class Worker
     protected static $masterPid; // 主进程id
     public           $title      = 'icy8-worker';// 进程名称
     protected        $workerPids = []; // 子进程pid
-    public           $total      = 1;  // 需要运行的进程数
+    public           $total      = 1;  // 需要运行的进程数 0代表无限个 进程会一直运行
     public           $max        = 0;  // 允许同时打开的进程数 0不限制
 
     public function __construct()
@@ -44,7 +44,9 @@ class Worker
         pcntl_signal(SIGTERM, [$this, 'sigHandler']);
         // 异步分发信号
         pcntl_async_signals(true);
-        foreach (range(1, $this->total) as $i) {
+        $i = 1;
+        while ($this->total === 0 || $i <= $this->total) {
+            if ($this->total > 0) $i++;
             // 控制最大运行进程数
             $this->waitingWorkerReleaseIfExceed();
             // 打开一个进程
