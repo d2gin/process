@@ -10,8 +10,9 @@ class Worker
     protected        $pid;
     protected        $event;
     protected        $startFile;
-    protected        $process;   // 工作进程
     protected static $masterPid; // 主进程id
+    protected        $process;   // 工作进程
+    protected        $processes  = []; // 按照业务分配进程
     public           $title      = 'icy8-worker';// 进程名称
     protected        $workerPids = []; // 子进程pid
     public           $total      = 1;  // 需要运行的进程数 0代表无限个 进程会一直运行
@@ -30,20 +31,7 @@ class Worker
 
     public function run($process = null)
     {
-        if ($process) $this->bindProcess($process);
-        if (!$this->process) {
-            throw new \Exception('have no process to run');
-        }
-        // 注册监听终止进程信号
-        pcntl_signal(SIGUSR1, [$this, "sigHandler"]);
-        // 子进程退出信号
-        pcntl_signal(SIGCHLD, [$this, 'sigHandler']);
-        // 终止进程
-        pcntl_signal(SIGINT, [$this, 'sigHandler']);
-        // kill信号
-        pcntl_signal(SIGTERM, [$this, 'sigHandler']);
-        // 异步分发信号
-        pcntl_async_signals(true);
+        $this->init($process);
         $i = 1;
         while ($this->total === 0 || $i <= $this->total) {
             if ($this->total > 0) $i++;
@@ -58,6 +46,38 @@ class Worker
     }
 
     /**
+     * 初始化
+     * @param null $process
+     * @throws \Exception
+     */
+    public function init($process = null)
+    {
+        $this->bindProcess($process);
+        // 注册监听终止进程信号
+        pcntl_signal(SIGUSR1, [$this, "sigHandler"]);
+        // 子进程退出信号
+        pcntl_signal(SIGCHLD, [$this, 'sigHandler']);
+        // 终止进程
+        pcntl_signal(SIGINT, [$this, 'sigHandler']);
+        // kill信号
+        pcntl_signal(SIGTERM, [$this, 'sigHandler']);
+        // 异步分发信号
+        pcntl_async_signals(true);
+    }
+
+    /**
+     * 获取业务逻辑
+     * @return mixed
+     */
+    public function fetchProcess()
+    {
+        if (!empty($this->processes)) {
+            return array_shift($this->processes);
+        }
+        return $this->process;
+    }
+
+    /**
      * 绑定工作进程
      * @param $process
      * @return $this
@@ -67,8 +87,12 @@ class Worker
     {
         if (!$process) {
             throw new \Exception('invalid process');
+        } else if (is_array($process)) {
+            $this->processes = $process;
+            $this->total     = count($process);
+        } else {
+            $this->process = $process;
         }
-        $this->process = $process;
         return $this;
     }
 
@@ -110,13 +134,18 @@ class Worker
      */
     public function fork()
     {
+        $this->event->trigger('worker_forking', $this);
+        $process = $this->fetchProcess();
+        if (!$process) {
+            throw new \Exception('have no process to run');
+        }
         $pid = pcntl_fork();
         if ($pid === 0) {
             // 子进程
             $this->workerPids = [];
             $this->pid        = getmypid();
             $this->setProcessTitle($this->title . ' ' . $this->startFile);
-            call_user_func_array($this->process, [$this]);
+            call_user_func_array($process, [$this]);
             exit;
         } else if ($pid < 0) {
             $this->event->trigger('worker_fork_fail', $this);
