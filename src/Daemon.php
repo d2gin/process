@@ -61,8 +61,6 @@ class  Daemon
             throw new \Exception("process [" . file_get_contents($this->pidFile) . '] is running');
         } else if (!$this->process && $process) {
             $this->process = $process;
-        } else if (!$this->process) {
-            throw new \Exception('unknown process');
         }
         // 开始制作守护进程
         $this->daemon();
@@ -75,7 +73,10 @@ class  Daemon
         // 异步分发信号
         pcntl_async_signals(true);
         $this->event->trigger('started', $this);
-        call_user_func_array($this->process, [$this]);
+        // 不强制配置业务代码
+        if($this->process) {
+            call_user_func_array($this->process, [$this]);
+        }
     }
 
     public function stop()
