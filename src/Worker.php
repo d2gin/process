@@ -55,6 +55,8 @@ class Worker
      */
     public function init($process = null)
     {
+        // 异步分发信号
+        pcntl_async_signals(true);
         $this->bindProcess($process);
         // 注册监听终止进程信号
         pcntl_signal(SIGUSR1, [$this, "sigHandler"]);
@@ -64,8 +66,6 @@ class Worker
         pcntl_signal(SIGINT, [$this, 'sigHandler']);
         // kill信号
         pcntl_signal(SIGTERM, [$this, 'sigHandler']);
-        // 异步分发信号
-        pcntl_async_signals(true);
     }
 
     /**
