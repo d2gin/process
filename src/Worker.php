@@ -42,7 +42,10 @@ class Worker
         }
         register_shutdown_function([$this, 'stop']);
         // 主进程保持运行
-        while (!empty($this->workerPids)) ;
+        while (!empty($this->workerPids)) {
+            $pid = pcntl_wait($status);
+            $this->whenChildWorkerFinish($pid, $status);
+        }
     }
 
     /**
@@ -146,7 +149,7 @@ class Worker
             $this->pid        = getmypid();
             $this->setProcessTitle($this->title . ' ' . $this->startFile);
             call_user_func_array($process, [$this]);
-            exit;
+            exit(0);
         } else if ($pid < 0) {
             $this->event->trigger('worker_fork_fail', $this);
         } else {
@@ -192,9 +195,6 @@ class Worker
                 $this->stop();
                 break;
             case SIGCHLD:
-                // 进程长时间挂起会导致接收不到信号
-                $pid = pcntl_wait($status);
-                $this->whenChildWorkerFinish($pid, $status);
                 break;
             case SIGINT:
                 $this->stop();
@@ -252,6 +252,11 @@ class Worker
     public function isMaster()
     {
         return getmypid() === self::$masterPid;
+    }
+
+    public function workerCount()
+    {
+        return count($this->workerPids);
     }
 
     /**
