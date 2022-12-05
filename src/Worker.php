@@ -179,8 +179,8 @@ class Worker
     public function whenChildWorkerFinish($pid, $status)
     {
         if (isset($this->workerPids[$pid])) {
-            $this->event->trigger('worker_finish', $this, $pid, $status);
             unset($this->workerPids[$pid]);
+            $this->event->trigger('worker_finish', $this, $pid, $status);
         }
     }
 
