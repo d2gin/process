@@ -1,7 +1,6 @@
 <?php
 
 namespace icy8\process;
-//declare(ticks=1);
 
 use Exception;
 use icy8\EventBus\Emitter;
@@ -43,7 +42,9 @@ class Worker
             // 打开一个进程
             $this->fork();
         }
-        register_shutdown_function([$this, 'stop']);
+        register_shutdown_function(function () {
+            $this->stop();
+        });
         // 主进程保持运行
         while (!empty($this->workerPids)) {
             usleep(1000000);
@@ -60,6 +61,8 @@ class Worker
         self::$masterPid = getmypid();
         $this->pid       = getmypid();
         $this->bindProcess($process);
+        // 异步分发信号
+        pcntl_async_signals(true);
         // 注册监听终止进程信号
         pcntl_signal(SIGUSR1, [$this, "sigHandler"]);
         // 子进程退出信号
@@ -68,8 +71,6 @@ class Worker
         pcntl_signal(SIGINT, [$this, 'sigHandler']);
         // kill信号
         pcntl_signal(SIGTERM, [$this, 'sigHandler']);
-        // 异步分发信号
-        pcntl_async_signals(true);
     }
 
     /**
@@ -105,7 +106,7 @@ class Worker
      * 终止当前进程
      * @throws Exception
      */
-    public function stop()
+    protected function stop()
     {
         $this->event->trigger('worker_stoped', $this);
         if ($this->isMaster()) {
