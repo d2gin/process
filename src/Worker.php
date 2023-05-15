@@ -135,7 +135,7 @@ class Worker
                 continue;
             }
             posix_kill($pid, SIGUSR1);
-//            pcntl_waitpid($pid, $status);
+            pcntl_waitpid($pid, $status);
 //            $this->whenChildWorkerFinish($pid, $status);
         }
         return true;
