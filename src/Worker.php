@@ -47,8 +47,11 @@ class Worker
         });
         // 主进程保持运行
         while (!empty($this->workerPids)) {
-            usleep(1000000);
+            // pcntl_signal_dispatch();
+            $pid = pcntl_wait($status);
+            $this->whenChildWorkerFinish($pid, $status);
         }
+        exit(0);
     }
 
     /**
@@ -132,8 +135,8 @@ class Worker
                 continue;
             }
             posix_kill($pid, SIGUSR1);
-            pcntl_waitpid($pid, $status);
-            $this->whenChildWorkerFinish($pid, $status);
+//            pcntl_waitpid($pid, $status);
+//            $this->whenChildWorkerFinish($pid, $status);
         }
         return true;
     }
