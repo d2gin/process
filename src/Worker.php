@@ -48,8 +48,11 @@ class Worker
         // 主进程保持运行
         while (!empty($this->workerPids)) {
             // pcntl_signal_dispatch();
-            $pid = pcntl_wait($status);
-            $this->whenChildWorkerFinish($pid, $status);
+            $pid = pcntl_wait($status, WNOHANG);
+            if ($pid > 0) {
+                $this->whenChildWorkerFinish($pid, $status);
+            }
+            usleep(1000000 * 0.01);
         }
         exit(0);
     }
@@ -61,11 +64,11 @@ class Worker
      */
     protected function init($process = null)
     {
+        // 异步分发信号
+        pcntl_async_signals(true);
         self::$masterPid = getmypid();
         $this->pid       = getmypid();
         $this->bindProcess($process);
-        // 异步分发信号
-        pcntl_async_signals(true);
         // 注册监听终止进程信号
         pcntl_signal(SIGUSR1, [$this, "sigHandler"]);
         // 子进程退出信号
@@ -204,6 +207,12 @@ class Worker
     {
         switch ($signo) {
             case SIGCHLD:
+                if ($this->isMaster()) {
+                    $pid = pcntl_wait($status, WNOHANG);
+                    if ($pid > 0) {
+                        $this->whenChildWorkerFinish($pid, $status);
+                    }
+                }
                 break;
             case SIGUSR1:
             case SIGINT:
